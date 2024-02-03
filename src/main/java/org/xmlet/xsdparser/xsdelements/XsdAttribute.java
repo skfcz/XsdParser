@@ -218,6 +218,8 @@ public class XsdAttribute extends XsdNamedElements {
         return Collections.emptyList();
     }
 
+    public String getDefaultValue() { return defaultElement;}
+
     public static ReferenceBase parse(@NotNull ParseData parseData){
         return xsdParseSkeleton(parseData.node, new XsdAttribute(parseData.parserInstance, convertNodeMap(parseData.node.getAttributes()), parseData.visitorFunction));
     }

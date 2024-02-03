@@ -121,6 +121,8 @@ public abstract class XsdParserCore {
                                     .findFirst()
                                     .get();
 
+                    System.out.println("xsdSchema " + xsdSchema.getTargetNamespace());
+
                     Map<String, NamespaceInfo> ns = xsdSchema.getNamespaces();
 
                     List<UnsolvedReference> unsolvedReferenceList = unsolvedElements
@@ -133,19 +135,28 @@ public abstract class XsdParserCore {
                     long currentUnsolvedReferenceListSize;
                     boolean solveMore = true;
 
+                    System.out.println("found #" + startingUnsolvedReferenceListSize + " unresolved references");
+
                     do {
                         for (UnsolvedReference unsolvedReference : unsolvedReferenceList) {
                             String unsolvedElementNamespace = unsolvedReference.getRef().substring(0, unsolvedReference.getRef().indexOf(":"));
+
+                            System.out.println("resolve reference " + unsolvedReference.getRef() );
 
                             Optional<String> foundNamespaceId = ns.keySet().stream().filter(namespaceId -> namespaceId.equals(unsolvedElementNamespace)).findFirst();
 
                             if (foundNamespaceId.isPresent()) {
                                 NamespaceInfo namespaceInfo = ns.get(foundNamespaceId.get());
+                                System.out.println("   prefix "  + foundNamespaceId.get()  + " -> " + namespaceInfo.getName());
                                 List<ReferenceBase> importedElements;
-                                XsdSchema unsolvedElementSchema = unsolvedReference.getElement().getXsdSchema();
+                                //XsdSchema unsolvedElementSchema = unsolvedReference.getElement().getXsdSchema();
+                                XsdSchema unsolvedElementSchema = xsdSchema; //<-- this is null for the guid element. But we know that the unresolved reference must reside in the schema we start from anyhow
+                                System.out.println("   xsdSchema "  + unsolvedElementSchema.getTargetNamespace());
 
                                 if (unsolvedElementSchema != null && unsolvedElementSchema.getTargetNamespace() != null && unsolvedElementSchema.getTargetNamespace().equals(namespaceInfo.getName())) {
+
                                     importedElements = unsolvedElementSchema.getElements();
+                                    System.out.println("    compare with #" + importedElements.size() + " items from " + namespaceInfo.getName());
                                 } else {
                                     String importedFileLocation = ns.get(foundNamespaceId.get()).getFile();
 
@@ -168,7 +179,20 @@ public abstract class XsdParserCore {
                                                                        .filter(k -> cleanPath(k).endsWith(cleanPath(finalImportedFileName)))
                                                                        .findFirst()
                                                                        .orElse(null)));
+
+                                    System.out.println("    compare with #" + importedElements + " items from " +importedFileName);
                                 
+                                }
+
+                                if ( importedElements != null) {
+                                    for (ReferenceBase importedElement : importedElements) {
+                                        if ( importedElement instanceof  NamedConcreteElement ) {
+                                            System.out.println("   " + ((NamedConcreteElement) importedElement).getName());
+                                        } else  {
+                                            System.out.println("   " + importedElement);
+                                        }
+                                    }
+
                                 }
                                 
                                 
@@ -178,6 +202,11 @@ public abstract class XsdParserCore {
                                                 .filter(concreteElement -> concreteElement instanceof NamedConcreteElement)
                                                 .map(concreteElement -> (NamedConcreteElement) concreteElement)
                                                 .collect(groupingBy(NamedConcreteElement::getName));
+
+//                                for (String key : concreteElementsMap.keySet()) {
+//                                    System.out.println( key + " : " + concreteElementsMap.get(key));
+//                                }
+
 
                                 replaceUnsolvedImportedReference(concreteElementsMap, unsolvedReference, fileName);
                             }
